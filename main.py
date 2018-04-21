@@ -34,7 +34,7 @@ def main():
             right_site = next(filter(lambda site: site.Id == site_id, sites_list)) # the site with with site_id as his id
             right_site.set_site_data(ignore_1, ignore_2, structure_type, owner, param_1, param_2)
 
-        print(sites_list, file= sys.stderr)
+        print(*sites_list, file= sys.stderr)
 
         my_queen = None;
         creep_list = []
@@ -52,12 +52,24 @@ def main():
         # Write an action using print
         # To debug: print("Debug messages...", file=sys.stderr)
 
+        print (touched_site, file=sys.stderr)
         my_barracks_list = get_my_barracks(sites_list)
         if len(my_barracks_list) == 0:
-            
+            closest_site = get_closest_site_wothout_strucure(my_queen, sites_list)
+            print ("BUILD {0} BARRACKS-KNIGHT".format(closest_site.Id))
+            print("TRAIN")
+        else:
+            to_build_site = get_closest_site_wothout_strucure(my_queen, sites_list)
+            touched_site = [site for site in sites_list if site.Id == touched_site]
+            if len(touched_site) != 0:
+                touched_site = touched_site[0]
+                if touched_site.structure_type == TOWER and touched_site.hp < 800:
+                    to_build_site = touched_site
+            print ("BUILD {0} TOWER".format(to_build_site.Id))
+            print("TRAIN", my_barracks_list[0].Id)
 
 
-
+        continue
         d = float('inf')
         closet_no_structued_site = 0
         for site in sites_list:
@@ -86,11 +98,18 @@ def distance(obj1, obj2):
     return math.sqrt((obj1.x - obj2.x)**2 + (obj1.y - obj2.y)**2)
 
 def get_my_barracks(sites_list):
-    my_barracks_list = [for site in sites_list if site.structure_type == BARRACKS and site.owner == FRIENDlY]
+    my_barracks_list = [site for site in sites_list if site.structure_type == BARRACKS and site.owner == FRIENDlY]
     return my_barracks_list
+
+def get_closest_site_wothout_strucure(my_queen, sites_list):
+    sites_wothout_structer_list = [site for site in sites_list if site.owner != FRIENDlY and site.structure_type != TOWER]
+    sites_wothout_structer_list.sort(key=lambda site:distance(my_queen, site))
+    return sites_wothout_structer_list[0]
 
 class MapObj:
     """A class for every object on the game map"""
+    x = 0;
+    y = 0;
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -100,6 +119,7 @@ class Site(MapObj):
         super().__init__(x, y)
         self.Id = Id
         self.radius = radius
+
 
     def set_site_data(self, ignore_1, ignore_2, structure_type, owner, param_1, param_2):
         self.ignore_1 = ignore_1
@@ -113,6 +133,8 @@ class Site(MapObj):
             self.num_of_turns_for_set = param_1
             self.creep_type = param_2
 
+    def __str__(self):
+        return "(id = {0} ({1}, {2}))".format(self.Id, self.x, self.y)
 
 class Unit(MapObj):
     def __init__(self, x, y, owner, type, health):
