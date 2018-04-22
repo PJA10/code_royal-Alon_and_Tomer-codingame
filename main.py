@@ -1,7 +1,6 @@
 import sys
 import math
 import random
-from functools import reduce
 # Auto-generated code below aims at helping you parse
 # the standard input according to the problem statement.
 
@@ -15,6 +14,7 @@ KNIGHT = 0
 ARCHER = 1
 GIANT = 2
 GOLDMINE = 0
+WANTED_INCOME = 10
 def main():
     num_sites = int(input())
     sites_list = [] # a list of all the sites as Site objects
@@ -32,9 +32,9 @@ def main():
             # ignore_2: used in future leagues
             # structure_type: -1 = No structure, 2 = Barracks
             # owner: -1 = No structure, 0 = FRIENDLY, 1 = Enemy
-            site_id, remaining_gold, max_mine_size, structure_type, owner, param_1, param_2 = [int(j) for j in input().split()]
+            site_id, remaining_gold, max_mine_rate, structure_type, owner, param_1, param_2 = [int(j) for j in input().split()]
             right_site = next(filter(lambda site: site.Id == site_id, sites_list)) # the site with with site_id as his id
-            right_site.set_site_data(remaining_gold, max_mine_size, structure_type, owner, param_1, param_2)
+            right_site.set_site_data(remaining_gold, max_mine_rate, structure_type, owner, param_1, param_2)
 
         print(*sites_list, file= sys.stderr)
 
@@ -56,23 +56,27 @@ def main():
         my_goldmines = get_my_goldmines(sites_list)
         income = sum(map(lambda x: x.income_rate, my_goldmines))
         print ('income:', income, file=sys.stderr)
-
         my_barracks_list = get_my_barracks(sites_list)
-        if len(my_barracks_list) == 0:
+        touched_site = get_touched_site(sites_list, touched_site)
+
+        if touched_site != None and touched_site.structure_type == GOLDMINE and touched_site.income_rate < touched_site.max_mine_rate:
+            print ("BUILD {0} MINE".format(touched_site.Id))
+        elif len(my_barracks_list) == 0:
             closest_site = get_closest_site_wothout_strucure(my_queen, sites_list)
-            print ("BUILD {0} MINE".format(closest_site.Id))
-            # print ("BUILD {0} BARRACKS-KNIGHT".format(closest_site.Id))
-            print("TRAIN")
+            print ("BUILD {0} BARRACKS-KNIGHT".format(closest_site.Id))
+        elif income < WANTED_INCOME and is_safe(my_queen, creep_list):
+            to_build_site = get_closest_possible_mine(my_queen, sites_list)
+            print ("BUILD {0} MINE".format(to_build_site.Id))
         else:
             to_build_site = get_closest_site_wothout_strucure(my_queen, sites_list)
-            touched_site = [site for site in sites_list if site.Id == touched_site]
-            if len(touched_site) != 0:
-                touched_site = touched_site[0]
-                if touched_site.structure_type == TOWER and touched_site.hp < 700:
+            if touched_site != None and touched_site.structure_type == TOWER and touched_site.hp < 700:
                     to_build_site = touched_site
             print ("BUILD {0} TOWER".format(to_build_site.Id))
-            print("TRAIN", my_barracks_list[0].Id)
 
+        if len(my_barracks_list) > 0:
+            print("TRAIN {0}".format(my_barracks_list[0].Id))
+        else:
+            print("TRAIN")
 
 def distance(obj1, obj2):
     return math.sqrt((obj1.x - obj2.x)**2 + (obj1.y - obj2.y)**2)
@@ -90,6 +94,21 @@ def get_closest_site_wothout_strucure(my_queen, sites_list):
     sites_wothout_structer_list.sort(key=lambda site:distance(my_queen, site))
     return sites_wothout_structer_list[0]
 
+def get_closest_possible_mine(my_queen, sites_list):
+    possible_mines_list = [site for site in sites_list if site.owner != FRIENDLY and site.remaining_gold != 0]
+    possible_mines_list.sort(key=lambda site:distance(my_queen, site))
+    print("possible_mines_list:", *possible_mines_list, file=sys.stderr)
+    if len(possible_mines_list) == 0:
+        return None
+    return possible_mines_list[0]
+
+def get_touched_site(sites_list, touched_site):
+    touched_site = [site for site in sites_list if site.Id == touched_site]
+    if len(touched_site) != 0:
+        touched_site = touched_site[0]
+        return touched_site
+    return None
+
 class MapObj:
     """A class for every object on the game map"""
     x = 0;
@@ -105,9 +124,11 @@ class Site(MapObj):
         self.radius = radius
 
 
-    def set_site_data(self, remaining_gold, max_mine_size, structure_type, owner, param_1, param_2):
+    def set_site_data(self, remaining_gold, max_mine_rate, structure_type, owner, param_1, param_2):
         self.owner = owner
         self.structure_type = structure_type
+        self.max_mine_rate = max_mine_rate
+        self.remaining_gold = remaining_gold
         if structure_type == TOWER:
             self.hp = param_1
             self.attack_range = param_2
@@ -116,8 +137,6 @@ class Site(MapObj):
             self.creep_type = param_2
         if structure_type == GOLDMINE:
             self.income_rate = param_1
-            self.max_mine_size = max_mine_size
-            self.remaining_gold = remaining_gold
 
     def __str__(self):
         return "(id = {0} ({1}, {2}))".format(self.Id, self.x, self.y)
