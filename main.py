@@ -108,9 +108,11 @@ def main():
 
         # Write an action using print
         # To debug: print("Debug messages...", file=sys.stderr)
-        print("safe_point:", safe_point, file=sys.stderr)
-        # if turn == 5:
-        #     safe_point = MapObj(my_queen.x, my_queen.y)
+        # print("safe_point:", safe_point, file=sys.stderr)
+        if turn < 1:
+            safe_point = MapObj(my_queen.x, my_queen.y)
+        else:
+            print("safe_point:", safe_point, file=sys.stderr)
 
         my_barracks_list = get_my_barracks(sites_list)
         seeing_sold_out_barracks = set([site for site in sites_list if site.remaining_gold == 0])
