@@ -12,10 +12,10 @@ class MapObj:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        
+
     def __str__(self):
         return "({0}, {1})".format(self.x, self.y)
-        
+
     def set_coordinates(self, x, y):
         self.x = x
         self.y = y
@@ -117,6 +117,7 @@ def main():
         if turn == 1:
             safe_point.set_coordinates(my_queen.x, my_queen.y)
 
+
         my_barracks_list = get_my_barracks(sites_list)
         seeing_sold_out_barracks = set([site for site in sites_list if site.remaining_gold == 0])
         sold_out_mines.update(seeing_sold_out_barracks)
@@ -206,7 +207,6 @@ def get_closest_possible_mine(my_queen, sites_list):
     return possible_mines_list[0]
 
 def eliminate_dangerous_sites(sites_list, possible_sites):
-    return possible_sites
     for tower in [site for site in sites_list if site.structure_type == TOWER and site.owner == ENEMY]:
         possible_sites = [site for site in possible_sites if distance(site, tower) > tower.attack_range]
     return possible_sites
