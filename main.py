@@ -146,7 +146,7 @@ def choose_action(sites_list, my_queen, creep_list, my_barracks_list, touched_si
     # if we don'nt have any barracks
     elif len(my_barracks_list) == 0:
         # then build a knight barracks on the closest posible site
-        closest_site = get_closest_site_wothout_strucure(my_queen, sites_list)
+        closest_site = get_closest_site_without_strucure(my_queen, sites_list)
         print ("BUILD {0} BARRACKS-KNIGHT".format(closest_site.Id) if closest_site != None else "MOVE {0} {1}".format(safe_point.x, safe_point.y))
     # if we don't get enough gold per turn and we the queen is safe
     elif income < WANTED_INCOME and is_safe(my_queen, enemy_creeps):
@@ -155,7 +155,7 @@ def choose_action(sites_list, my_queen, creep_list, my_barracks_list, touched_si
         print ("BUILD {0} MINE".format(to_build_site.Id) if to_build_site != None else "MOVE {0} {1}".format(safe_point.x, safe_point.y))
     else:
         # build a tower on the closest posible site / upgrade a touched tower if there is one
-        to_build_site = get_closest_site_wothout_strucure(my_queen, sites_list)
+        to_build_site = get_closest_site_without_strucure(my_queen, sites_list)
         if touched_site != None and touched_site.owner == FRIENDLY and touched_site.structure_type == TOWER and touched_site.hp < 700:
             to_build_site = touched_site
         print ("BUILD {0} TOWER".format(to_build_site.Id) if to_build_site != None else "MOVE {0} {1}".format(safe_point.x, safe_point.y))
@@ -191,13 +191,17 @@ def get_my_barracks(sites_list):
     my_barracks_list = [site for site in sites_list if site.structure_type == BARRACKS and site.owner == FRIENDLY]
     return my_barracks_list
 
-def get_closest_site_wothout_strucure(my_queen, sites_list):
-    sites_wothout_structer_list = [site for site in sites_list if site.owner != FRIENDLY and site.structure_type != TOWER]
-    sites_wothout_structer_list = eliminate_dangerous_sites(sites_list, sites_wothout_structer_list)
-    sites_wothout_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site) * distance(site, get_closest_point_on_edge(site))))
-    if len(sites_wothout_structer_list) == 0:
+def get_sorted_site_list_without_strucure(my_queen, sites_list):
+    sites_without_structer_list = [site for site in sites_list if site.owner != FRIENDLY and site.structure_type != TOWER]
+    sites_without_structer_list = eliminate_dangerous_sites(sites_list, sites_without_structer_list)
+    sites_without_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site)) * distance(site, get_closest_point_on_edge(site))))
+    return sites_without_structer_list
+
+def get_closest_site_without_strucure(my_queen, sites_list):
+    list = get_sorted_site_list_without_strucure(my_queen, sites_list)
+    if len(list) == 0:
         return None
-    return sites_wothout_structer_list[0]
+    return list[0]
 
 def get_closest_point_on_edge(obj1):
     if safe_point.x < MAP_LENGTH:
@@ -206,7 +210,7 @@ def get_closest_point_on_edge(obj1):
         return MapObj(MAP_LENGTH, obj1.y)
 
 def get_closest_possible_mine(my_queen, sites_list):
-    possible_mines_list = [site for site in get_closest_site_wothout_strucure(sites_list) if site.remaining_gold != 0 and site not in sold_out_mines]
+    possible_mines_list = [site for site in get_sorted_site_list_without_strucure(my_queen, sites_list) if site.remaining_gold != 0 and site not in sold_out_mines]
     print("possible_mines_list:", *possible_mines_list, file=sys.stderr)
     if len(possible_mines_list) == 0:
         return None
