@@ -64,6 +64,8 @@ WANTED_INCOME = 8
 KNIGHT_RADIUS = 20
 QUEEN_RADIUS = 30
 KNIGHT_SPEED = 100
+MAP_LENGTH = 1920
+MAP_HIGHT = 1000
 
 sold_out_mines = set([])
 safe_point = MapObj(1,1)
@@ -110,6 +112,7 @@ def main():
         # To debug: print("Debug messages...", file=sys.stderr)
         # print("safe_point:", safe_point, file=sys.stderr)
         if turn < 1:
+            global safe_point
             safe_point = MapObj(my_queen.x, my_queen.y)
         else:
             print("safe_point:", safe_point, file=sys.stderr)
@@ -132,6 +135,7 @@ def choose_action(sites_list, my_queen, creep_list, my_barracks_list, touched_si
     print ('income:', income, file=sys.stderr)
     touched_site = get_touched_site(sites_list, touched_site) # get the actual site by its Id
     enemy_creeps = [creep for creep in creep_list if creep.owner == ENEMY]
+    print("safe_point:", safe_point, file=sys.stderr)
 
     # if the queen toche a mine that isn't maxed
     if touched_site != None and touched_site.structure_type == GOLDMINE and touched_site.income_rate < touched_site.max_mine_rate:
@@ -188,11 +192,17 @@ def get_my_barracks(sites_list):
 def get_closest_site_wothout_strucure(my_queen, sites_list):
     sites_wothout_structer_list = [site for site in sites_list if site.owner != FRIENDLY and site.structure_type != TOWER]
     sites_wothout_structer_list = eliminate_dangerous_sites(sites_list, sites_wothout_structer_list)
-    sites_wothout_structer_list.sort(key=lambda site:distance(my_queen, site))
+    sites_wothout_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site) * distance(site, get_closest_point_on_edge(site))))
     if len(sites_wothout_structer_list) == 0:
         return None
     return sites_wothout_structer_list[0]
 
+def get_closest_point_on_edge(obj1):
+    if safe_point.x < MAP_LENGTH:
+        return MapObj(0, obj1.y)
+    else:
+        return MapObj(MAP_LENGTH, obj1.y)
+        
 def get_closest_possible_mine(my_queen, sites_list):
     possible_mines_list = [site for site in sites_list if site.owner != FRIENDLY and site.structure_type != TOWER and site.remaining_gold != 0 and site not in sold_out_mines]
     possible_mines_list = eliminate_dangerous_sites(sites_list, possible_mines_list)
