@@ -69,6 +69,8 @@ WANTED_INCOME = 8
 KNIGHT_RADIUS = 20
 QUEEN_RADIUS = 30
 KNIGHT_SPEED = 100
+MAP_LENGTH = 1920
+MAP_HIGHT = 1000
 
 sold_out_mines = set([])
 safe_point = MapObj(1,1)
@@ -192,15 +194,19 @@ def get_my_barracks(sites_list):
 def get_closest_site_wothout_strucure(my_queen, sites_list):
     sites_wothout_structer_list = [site for site in sites_list if site.owner != FRIENDLY and site.structure_type != TOWER]
     sites_wothout_structer_list = eliminate_dangerous_sites(sites_list, sites_wothout_structer_list)
-    sites_wothout_structer_list.sort(key=lambda site:distance(my_queen, site))
+    sites_wothout_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site) * distance(site, get_closest_point_on_edge(site))))
     if len(sites_wothout_structer_list) == 0:
         return None
     return sites_wothout_structer_list[0]
 
+def get_closest_point_on_edge(obj1):
+    if safe_point.x < MAP_LENGTH:
+        return MapObj(0, obj1.y)
+    else:
+        return MapObj(MAP_LENGTH, obj1.y)
+
 def get_closest_possible_mine(my_queen, sites_list):
-    possible_mines_list = [site for site in sites_list if site.owner != FRIENDLY and site.structure_type != TOWER and site.remaining_gold != 0 and site not in sold_out_mines]
-    possible_mines_list = eliminate_dangerous_sites(sites_list, possible_mines_list)
-    possible_mines_list.sort(key=lambda site:distance(my_queen, site))
+    possible_mines_list = [site for site in get_closest_site_wothout_strucure(sites_list) if site.remaining_gold != 0 and site not in sold_out_mines]
     print("possible_mines_list:", *possible_mines_list, file=sys.stderr)
     if len(possible_mines_list) == 0:
         return None
