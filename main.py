@@ -5,6 +5,9 @@ import copy
 # Auto-generated code below aims at helping you parse
 # the standard input according to the problem statement.
 
+
+
+
 class MapObj:
     """A class for every object on the game map"""
     x = 0;
@@ -65,7 +68,7 @@ KNIGHT = 0
 ARCHER = 1
 GIANT = 2
 GOLDMINE = 0
-WANTED_INCOME = 8
+WANTED_INCOME =4
 KNIGHT_RADIUS = 20
 QUEEN_RADIUS = 30
 KNIGHT_SPEED = 100
@@ -78,15 +81,13 @@ safe_point = MapObj(1,1)
 def main():
     num_sites = int(input())
     sites_list = [] # a list of all the sites as Site objects
-
+    train_next_turn = False
     for i in range(num_sites):
         site_id, x, y, radius = [int(j) for j in input().split()]
         sites_list.append(Site(site_id, x, y, radius))
 
     # game loop
     for turn in range(1000):
-        test_loc = towards(MapObj(100, 100), MapObj(1000, 1000), 400)
-        print("test_loc", test_loc, file = sys.stderr)
         # touched_site: -1 if none
         gold, touched_site = [int(i) for i in input().split()]
         for i in range(num_sites):
@@ -127,10 +128,15 @@ def main():
         choose_action(sites_list, my_queen, creep_list, my_barracks_list, touched_site)
 
         # if we have a barracks
-        if len(my_barracks_list) > 0:
+        if len(my_barracks_list) > 0 and (gold > 80 or train_next_turn):
             print("TRAIN {0}".format(my_barracks_list[0].Id))
+            train_next_turn = True
         else:
             print("TRAIN")
+            
+        if gold < 80 and train_next_turn != 0:
+            print("dont train next turn", file = sys.stderr)
+            train_next_turn = False
 
 def choose_action(sites_list, my_queen, creep_list, my_barracks_list, touched_site):
     my_goldmines = [site for site in sites_list if site.structure_type == GOLDMINE and site.owner == FRIENDLY]
@@ -164,6 +170,8 @@ def choose_action(sites_list, my_queen, creep_list, my_barracks_list, touched_si
 def towards(object1, object2, dis):
     obj1 = copy.deepcopy(object1)
     obj2 = copy.deepcopy(object2)
+    if distance(obj1, obj2) < dis:
+        return obj2
     if obj1.x == obj2.x:
         x = obj1.x
         if obj1.y >= obj2.y:
@@ -197,6 +205,13 @@ def get_sorted_site_list_without_strucure(my_queen, sites_list):
     sites_without_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site)) * distance(site, get_closest_point_on_edge(site))))
     return sites_without_structer_list
 
+def get_sorted_list_with_towers(my_queen, sites_list):
+    sites_without_structer_list = [site for site in sites_list if not (bool(site.owner != FRIENDLY) ^ bool(site.structure_type != TOWER))]
+    print("sites_without_structer_list:", *sites_without_structer_list, file=sys.stderr)
+    sites_without_structer_list = eliminate_dangerous_sites(sites_list, sites_without_structer_list)
+    sites_without_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site))))
+    return sites_without_structer_list
+
 def get_closest_site_without_strucure(my_queen, sites_list):
     list = get_sorted_site_list_without_strucure(my_queen, sites_list)
     if len(list) == 0:
@@ -204,13 +219,13 @@ def get_closest_site_without_strucure(my_queen, sites_list):
     return list[0]
 
 def get_closest_point_on_edge(obj1):
-    if safe_point.x < MAP_LENGTH:
+    if safe_point.x < MAP_LENGTH/2:
         return MapObj(0, obj1.y)
     else:
         return MapObj(MAP_LENGTH, obj1.y)
 
 def get_closest_possible_mine(my_queen, sites_list):
-    possible_mines_list = [site for site in get_sorted_site_list_without_strucure(my_queen, sites_list) if site.remaining_gold != 0 and site not in sold_out_mines]
+    possible_mines_list = [site for site in get_sorted_list_with_towers(my_queen, sites_list) if site.remaining_gold != 0 and site not in sold_out_mines]
     print("possible_mines_list:", *possible_mines_list, file=sys.stderr)
     if len(possible_mines_list) == 0:
         return None
