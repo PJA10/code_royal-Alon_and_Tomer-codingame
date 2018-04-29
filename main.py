@@ -47,6 +47,30 @@ class MapObj:
         y = math.floor(obj1.y + y_diff)
         return MapObj(x, y)
 
+    def towards(self, object2, dis):
+        obj1 = copy.deepcopy(self)
+        obj2 = copy.deepcopy(object2)
+        if distance(obj1, obj2) < dis:
+            return obj2
+        if obj1.x == obj2.x:
+            x = obj1.x
+            if obj1.y >= obj2.y:
+                y =  obj1.y - dis
+            else:
+                y =  obj1.y + dis
+            return MapObj(x, y)
+        if obj2.x < obj1.x:
+            dis = distance(obj1, obj2) - dis
+            swap = obj1
+            obj1 = obj2
+            obj2 = swap
+        m = (obj1.y - obj2.y)/(obj1.x - obj2.x)
+        x_diff = math.sqrt((dis**2)/(1+m**2))
+        y_diff = m*x_diff
+        x = math.floor(obj1.x + x_diff)
+        y = math.floor(obj1.y + y_diff)
+        return MapObj(x, y)
+
 
 class Site(MapObj):
     def __init__(self, Id, x, y, radius):
@@ -177,7 +201,7 @@ def choose_action(sites_list, my_queen, enemy_queen, creep_list, my_barracks_lis
             print("sites in path", *sites_in_enemy_path, file = sys.stderr)
 
     # if the queen toche a mine that isn't maxed
-    if touched_site != None and touched_site.structure_type == GOLDMINE and touched_site.income_rate < touched_site.max_mine_rate:
+    elif touched_site != None and touched_site.structure_type == GOLDMINE and touched_site.income_rate < touched_site.max_mine_rate:
         # upgrade the mine
         print ("BUILD {0} MINE".format(touched_site.Id))
     # if we don't get enough gold per turn and we the queen is safe
@@ -227,6 +251,13 @@ def get_sorted_list_with_towers(my_queen, sites_list):
     print("sites_without_structer_list:", *sites_without_structer_list, file=sys.stderr)
     sites_without_structer_list = eliminate_dangerous_sites(sites_list, my_queen, sites_without_structer_list)
     sites_without_structer_list.sort(key=lambda site:(distance(my_queen, site))) # * distance(site, get_closest_point_on_edge(site)
+    return sites_without_structer_list
+
+def get_sorted_list_with_towers(my_queen, sites_list):
+    sites_without_structer_list = [site for site in sites_list if not (bool(site.owner != FRIENDLY) ^ bool(site.structure_type != TOWER))]
+    print("sites_without_structer_list:", *sites_without_structer_list, file=sys.stderr)
+    sites_without_structer_list = eliminate_dangerous_sites(sites_list, my_queen, sites_without_structer_list)
+    sites_without_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site))))
     return sites_without_structer_list
 
 def get_closest_site_without_strucure(my_queen, sites_list):
