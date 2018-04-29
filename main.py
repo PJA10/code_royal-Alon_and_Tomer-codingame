@@ -124,6 +124,7 @@ KNIGHT_SPEED = 100
 MAP_LENGTH = 1920
 MAP_HIGHT = 1000
 TOWER_MAX_HP = 700
+TOWER_MAX_RADIUS = 900
 
 sold_out_mines = set([])
 safe_point = MapObj(1,1)
@@ -201,7 +202,7 @@ def choose_action(sites_list, my_queen, enemy_queen, creep_list, my_barracks_lis
             print("sites in path", *sites_in_enemy_path, file = sys.stderr)
 
     # if the queen toche a mine that isn't maxed
-    elif touched_site != None and touched_site.structure_type == GOLDMINE and touched_site.income_rate < touched_site.max_mine_rate:
+    if touched_site != None and touched_site.structure_type == GOLDMINE and touched_site.income_rate < touched_site.max_mine_rate:
         # upgrade the mine
         print ("BUILD {0} MINE".format(touched_site.Id))
     # if we don't get enough gold per turn and we the queen is safe
@@ -225,7 +226,6 @@ def choose_action(sites_list, my_queen, enemy_queen, creep_list, my_barracks_lis
             for site in [site for site in sites_in_enemy_path if site.structure_type != GOLDMINE and site.structure_type != BARRACKS][:4]:
                 if (site.structure_type != TOWER) or (site.structure_type == TOWER and site.hp < TOWER_MAX_HP*2//3):
                     print ("BUILD {0} TOWER".format(site.Id))
-                    print ("to_brake", file= sys.stderr)
                     to_brake = True
                     break
             if not to_brake:
@@ -251,13 +251,6 @@ def get_sorted_list_with_towers(my_queen, sites_list):
     print("sites_without_structer_list:", *sites_without_structer_list, file=sys.stderr)
     sites_without_structer_list = eliminate_dangerous_sites(sites_list, my_queen, sites_without_structer_list)
     sites_without_structer_list.sort(key=lambda site:(distance(my_queen, site))) # * distance(site, get_closest_point_on_edge(site)
-    return sites_without_structer_list
-
-def get_sorted_list_with_towers(my_queen, sites_list):
-    sites_without_structer_list = [site for site in sites_list if not (bool(site.owner != FRIENDLY) ^ bool(site.structure_type != TOWER))]
-    print("sites_without_structer_list:", *sites_without_structer_list, file=sys.stderr)
-    sites_without_structer_list = eliminate_dangerous_sites(sites_list, my_queen, sites_without_structer_list)
-    sites_without_structer_list.sort(key=lambda site:(distance(my_queen, site) * distance(site, get_closest_point_on_edge(site))))
     return sites_without_structer_list
 
 def get_closest_site_without_strucure(my_queen, sites_list):
@@ -334,29 +327,36 @@ def find_safe_point(sites_list):
     safe_points = [MapObj(0, 0), MapObj(0, MAP_HIGHT)]
     if safe_point.x>MAP_LENGTH/2:
         safe_points = [MapObj(MAP_LENGTH, MAP_HIGHT), MapObj(MAP_LENGTH, 0)]
-    num_of_towers_in_path = -1
     for point in safe_points:
+        temp_towers_in_path = []
         temp_sites_in_path = []
         pos = enemy_barracks[0]
         while pos.x != point.x and pos.y != point.y:
             for site in sites_list:
-                if site not in temp_sites_in_path and distance(site, pos) < TOWER_MAX_HP / 2:
+                if site not in temp_sites_in_path and distance(site, pos) < TOWER_MAX_RADIUS / 2 - 300:
                     temp_sites_in_path.append(site)
                 if site.owner == FRIENDLY and site.structure_type == TOWER and site not in towers_in_path and distance(site, pos) < site.attack_range/2:
-                    towers_in_path.append(site)
+                    temp_towers_in_path.append(site)
             pos = pos.towards(point, KNIGHT_SPEED * 2)
-        if num_of_towers_in_path == -1:
+        if point == safe_points[0]:
             sites_in_path = temp_sites_in_path
+            towers_in_path = temp_towers_in_path
         else:
-            if len(towers_in_path) > num_of_towers_in_path:
+            if len(temp_towers_in_path) > len(towers_in_path):
                 safe_point = point
                 sites_in_path = temp_sites_in_path
+                for tower in temp_towers_in_path:
+                    if tower not in sites_in_path:
+                        sites_in_path.append(tower)
             else:
                 safe_point = safe_points[0]
+                for tower in towers_in_path:
+                    if tower not in sites_in_path:
+                        sites_in_path.append(tower)
 
-        num_of_towers_in_path = len(towers_in_path)
-    print ('before sort:', *sites_in_path, file = sys.stderr)
     sites_in_path.sort(key = lambda site: distance(site, safe_point))
+    print("temp_towers_in_path:", *temp_towers_in_path, file = sys.stderr)
+    print("towers_in_path:", *towers_in_path, file = sys.stderr)
     return sites_in_path
 
 
