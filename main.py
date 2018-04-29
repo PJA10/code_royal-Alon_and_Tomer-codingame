@@ -22,7 +22,7 @@ class MapObj:
     def set_coordinates(self, x, y):
         self.x = x
         self.y = y
-        
+
     def towards(self, object2, dis):
         obj1 = copy.deepcopy(self)
         obj2 = copy.deepcopy(object2)
@@ -146,7 +146,7 @@ def main():
         print("safe_point:", safe_point, file=sys.stderr)
         if turn == 1:
             safe_point.set_coordinates(my_queen.x, my_queen.y)
-        
+
 
         my_barracks_list = get_my_barracks(sites_list)
         seeing_sold_out_barracks = set([site for site in sites_list if site.remaining_gold == 0])
@@ -160,7 +160,7 @@ def main():
             train_next_turn = True
         else:
             print("TRAIN")
-            
+
         if gold < 80 and train_next_turn != 0:
             print("dont train next turn", file = sys.stderr)
             train_next_turn = False
@@ -175,7 +175,7 @@ def choose_action(sites_list, my_queen, enemy_queen, creep_list, my_barracks_lis
     if len([site for site in sites_list if site.structure_type == BARRACKS and site.owner == ENEMY]) > 0:
             sites_in_enemy_path = find_safe_point(sites_list)
             print("sites in path", *sites_in_enemy_path, file = sys.stderr)
-            
+
     # if the queen toche a mine that isn't maxed
     if touched_site != None and touched_site.structure_type == GOLDMINE and touched_site.income_rate < touched_site.max_mine_rate:
         # upgrade the mine
@@ -198,10 +198,8 @@ def choose_action(sites_list, my_queen, enemy_queen, creep_list, my_barracks_lis
             print ("BUILD {0} TOWER".format(to_build_site.Id) if to_build_site != None else "MOVE {0} {1}".format(safe_point.x, safe_point.y))
         elif len(sites_in_enemy_path) > 0 and len([site for site in sites_list if site.structure_type == TOWER and site.owner == FRIENDLY]) > 3:
             to_brake = False
-            l = [site for site in sites_in_enemy_path if site.structure_type != GOLDMINE and site.structure_type != BARRACKS]
-            print ("list:", *l[3:], file = sys.stderr)
-            for site in l[3:]:
-                if (site.structure_type != TOWER) or (site.structure_type == TOWER and site.hp < TOWER_MAX_HP /2):
+            for site in [site for site in sites_in_enemy_path if site.structure_type != GOLDMINE and site.structure_type != BARRACKS][:4]:
+                if (site.structure_type != TOWER) or (site.structure_type == TOWER and site.hp < TOWER_MAX_HP*2//3):
                     print ("BUILD {0} TOWER".format(site.Id))
                     print ("to_brake", file= sys.stderr)
                     to_brake = True
@@ -264,7 +262,7 @@ def eliminate_dangerous_sites(sites_list, my_queen, possible_sites):
                     next_site = True
                     break
             if next_site:
-                break    
+                break
             prev_step = step
 
     return possible_sites
@@ -283,52 +281,52 @@ def is_safe(my_queen, enemy_creeps):
         if distance(closest_creep, my_queen) < KNIGHT_RADIUS + QUEEN_RADIUS + KNIGHT_SPEED*2:
             is_safe = False
     return is_safe
-    
+
 def find_safe_point(sites_list, enemy_queen):
     enemy_barracks = [site for site in sites_list if site.structure_type == BARRACKS and site.owner == ENEMY]
     if len(enemy_barracks) == 0:
         enemy_barracks.append(enemy_queen)
-    
+
     average_x = sum(enemy_barracks, key = lambda site: site.x) // len(enemy_barracks)
     average_y = sum(enemy_barracks, key = lambda site: site.y) // len(enemy_barracks)
     avarage_enemy_baracks = MapObj(average_x, average_y)
     pass
-    return 
-    
+    return
+
 
 def find_safe_point(sites_list):
     global safe_point
     enemy_barracks = [site for site in sites_list if site.structure_type == BARRACKS and site.owner == ENEMY]
+    enemy_barracks.sort(key = lambda barrack: barrack.x)
     towers_in_path = []
     sites_in_path = []
     safe_points = [MapObj(0, 0), MapObj(0, MAP_HIGHT)]
     if safe_point.x>MAP_LENGTH/2:
         safe_points = [MapObj(MAP_LENGTH, MAP_HIGHT), MapObj(MAP_LENGTH, 0)]
-    for barrack in enemy_barracks:
-        num_of_towers_in_path = -1
-        for point in safe_points:
-            temp_sites_in_path = []
-            pos = barrack
-            while pos.x != point.x and pos.y != point.y:
-                for site in sites_list:
-                    if site not in temp_sites_in_path and distance(site, pos) < TOWER_MAX_HP / 2:
-                        temp_sites_in_path.append(site)
-                    if site.owner == FRIENDLY and site.structure_type == TOWER and site not in towers_in_path and distance(site, pos) < site.attack_range/2:
-                        towers_in_path.append(site)
-                pos = pos.towards(point, KNIGHT_SPEED * 2)
-            if num_of_towers_in_path == -1:
+    num_of_towers_in_path = -1
+    for point in safe_points:
+        temp_sites_in_path = []
+        pos = enemy_barracks[0]
+        while pos.x != point.x and pos.y != point.y:
+            for site in sites_list:
+                if site not in temp_sites_in_path and distance(site, pos) < TOWER_MAX_HP / 2:
+                    temp_sites_in_path.append(site)
+                if site.owner == FRIENDLY and site.structure_type == TOWER and site not in towers_in_path and distance(site, pos) < site.attack_range/2:
+                    towers_in_path.append(site)
+            pos = pos.towards(point, KNIGHT_SPEED * 2)
+        if num_of_towers_in_path == -1:
+            sites_in_path = temp_sites_in_path
+        else:
+            if len(towers_in_path) > num_of_towers_in_path:
+                safe_point = point
                 sites_in_path = temp_sites_in_path
             else:
-                if len(towers_in_path) > num_of_towers_in_path:
-                    safe_point = point
-                    sites_in_path = temp_sites_in_path     
-                else:
-                    safe_point = safe_points[0]
-                
-            num_of_towers_in_path = len(towers_in_path)
+                safe_point = safe_points[0]
+
+        num_of_towers_in_path = len(towers_in_path)
     print ('before sort:', *sites_in_path, file = sys.stderr)
     sites_in_path.sort(key = lambda site: distance(site, safe_point))
     return sites_in_path
-    
+
 
 main()
