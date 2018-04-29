@@ -211,14 +211,14 @@ def choose_action(sites_list, my_queen, enemy_queen, creep_list, my_barracks_lis
         to_build_site = get_closest_possible_mine(my_queen, sites_list)
         print ("BUILD {0} MINE".format(to_build_site.Id) if to_build_site != None else "MOVE {0} {1}".format(safe_point.x, safe_point.y))
         # if we don'nt have any barracks
-    elif len(my_barracks_list) == 0:
+    elif len(my_barracks_list) == 0 and is_safe(my_queen, enemy_creeps):
         # then build a knight barracks on the closest posible site
         closest_site = get_closest_site_without_strucure(my_queen, sites_list)
         print ("BUILD {0} BARRACKS-KNIGHT".format(closest_site.Id) if closest_site != None else "MOVE {0} {1}".format(safe_point.x, safe_point.y))
     else:
         # build a tower on the closest posible site / upgrade a touched tower if there is one
         to_build_site = get_closest_site_without_strucure(my_queen, sites_list)
-        if touched_site != None and touched_site.owner == FRIENDLY and touched_site.structure_type == TOWER and touched_site.hp < TOWER_MAX_HP:
+        if is_safe(my_queen, enemy_creeps) and touched_site != None and touched_site.owner == FRIENDLY and touched_site.structure_type == TOWER and touched_site.hp < TOWER_MAX_HP:
             to_build_site = touched_site
             print ("BUILD {0} TOWER".format(to_build_site.Id) if to_build_site != None else "MOVE {0} {1}".format(safe_point.x, safe_point.y))
         elif len(sites_in_enemy_path) > 0 and len([site for site in sites_list if site.structure_type == TOWER and site.owner == FRIENDLY]) > 3:
